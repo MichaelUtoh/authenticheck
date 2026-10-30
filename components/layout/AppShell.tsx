@@ -1,9 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icons";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useMe } from "@/lib/hooks/useMe";
+import { homeFor, onboardingState } from "@/lib/onboarding";
 import { Sidebar } from "./Sidebar";
 
 // Pages that live in the (auth) group but render without the app chrome.
@@ -12,9 +14,18 @@ const BARE_PATHS = ["/onboarding"];
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  useMe();
+  const router = useRouter();
+  const user = useMe();
 
-  if (BARE_PATHS.some((p) => pathname.startsWith(p))) return <>{children}</>;
+  const bare = BARE_PATHS.some((p) => pathname.startsWith(p));
+  // Tenants that aren't approved yet can't use the app; send them back to finish setup.
+  const blocked = !!user && !user.is_staff && onboardingState(user) !== "approved";
+  useEffect(() => {
+    if (user && !bare && blocked) router.replace(homeFor(user));
+  }, [user, bare, blocked, router]);
+
+  if (bare) return <>{children}</>;
+  if (!user || blocked) return <LoadingSpinner />;
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[288px_minmax(0,1fr)]">

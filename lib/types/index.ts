@@ -1,6 +1,6 @@
 // TypeScript types — generated from API_CONTRACTS.md
 
-export type TenantStatus = "pending" | "approved" | "rejected" | "suspended";
+export type TenantStatus = "pending" | "info_requested" | "approved" | "rejected" | "suspended";
 export type CodeStatus = "active" | "deactivated" | "recalled";
 export type JobStatus = "pending" | "processing" | "done" | "failed";
 export type FlagSeverity = "low" | "medium" | "high" | "critical";

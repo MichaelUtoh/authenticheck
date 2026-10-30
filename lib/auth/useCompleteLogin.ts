@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/auth/store";
+import { homeFor } from "@/lib/onboarding";
 
 /** Stores the token, loads the profile, and sends the user to the right place. */
 export function useCompleteLogin() {
@@ -12,9 +13,7 @@ export function useCompleteLogin() {
     setAccessToken(accessToken);
     const user = await authApi.me();
     setUser(user);
-    if (user.is_staff) return router.replace("/platform/tenants");
-    if (user.memberships.length === 0) return router.replace("/onboarding");
-    setActiveTenant(user.memberships[0]);
-    router.replace("/dashboard");
+    if (user.memberships[0]) setActiveTenant(user.memberships[0]);
+    router.replace(homeFor(user));
   };
 }
