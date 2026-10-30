@@ -46,12 +46,22 @@ export interface SupportContact {
 export interface RegulatoryRef {
   id: string;
   authority: string;
-  number: string;
+  /** Legacy name; the API now reads and writes `reference_number`. */
+  number?: string;
+  reference_number?: string;
+  country_code?: string;
   source?: "entered_by_manufacturer" | "imported" | "verified_by_reviewer";
   verification_status: RefVerification;
   verified_at?: string | null;
   verification_method?: string | null;
   verification_note?: string | null;
+}
+
+/** The API stores pack configuration as an object; older rows may still hold free text. */
+export interface PackConfiguration {
+  packs: number;
+  per_pack: number;
+  unit: string;
 }
 
 /** Consumer-visible fields; also the shape of `pending_revision`. */
@@ -62,7 +72,7 @@ export interface ProductFields {
   variant: string | null;
   size_value: number | string | null;
   size_unit: SizeUnit | null;
-  pack_configuration: string | null;
+  pack_configuration: PackConfiguration | string | null;
   dosage_form: string | null;
   strength: string | null;
   category: string | null;

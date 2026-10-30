@@ -12,11 +12,11 @@ import { Select } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { ErrorState } from "@/components/shared/EmptyState";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { asList, catalogueApi, tenantApi, type ProductWrite } from "@/lib/api/catalogue";
+import { asList, catalogueApi, regulatoryRefBody, tenantApi, type ProductWrite } from "@/lib/api/catalogue";
 import { ApiError, errorMessage, fieldErrors } from "@/lib/api/client";
 import { useCatalogueRole } from "@/lib/auth/permissions";
 import { useApi } from "@/lib/hooks/useApi";
-import type { ConsumerVisibility, Industry, Product, ProductFields, RegulatoryRef, SizeUnit } from "@/lib/types";
+import type { ConsumerVisibility, Industry, PackConfiguration, Product, ProductFields, RegulatoryRef, SizeUnit } from "@/lib/types";
 import { ConsumerPreview } from "./ConsumerPreview";
 
 const UNITS: SizeUnit[] = ["ml", "L", "g", "kg", "mg", "units"];
@@ -43,7 +43,9 @@ interface FormValues {
   variant: string;
   size_value: string;
   size_unit: SizeUnit | "";
-  pack_configuration: string;
+  pack_packs: string;
+  pack_per_pack: string;
+  pack_unit: string;
   dosage_form: string;
   strength: string;
   category: string;
@@ -64,9 +66,10 @@ interface Dup {
   existing?: { id: string; name: string; variant?: string; size?: string; sku?: string; batch_count?: number };
 }
 
-function toValues(p?: Product, ref?: Pick<RegulatoryRef, "authority" | "number"> | null): FormValues {
+function toValues(p?: Product, ref?: Pick<RegulatoryRef, "authority" | "number" | "reference_number"> | null): FormValues {
   // A product with a revision in flight is edited from that revision, not the live values.
   const b = (p ? { ...p, ...(p.pending_revision ?? {}) } : {}) as Partial<Product> & Partial<ProductFields>;
+  const pack = typeof b.pack_configuration === "object" ? b.pack_configuration : null;
   return {
     industry: b.industry ?? "cosmetics",
     name: b.name ?? "",
@@ -74,7 +77,9 @@ function toValues(p?: Product, ref?: Pick<RegulatoryRef, "authority" | "number">
     variant: b.variant ?? "",
     size_value: b.size_value != null ? String(b.size_value) : "",
     size_unit: b.size_unit ?? "",
-    pack_configuration: b.pack_configuration ?? "",
+    pack_packs: pack?.packs != null ? String(pack.packs) : "",
+    pack_per_pack: pack?.per_pack != null ? String(pack.per_pack) : "",
+    pack_unit: pack?.unit ?? "",
     dosage_form: b.dosage_form ?? "",
     strength: b.strength ?? "",
     category: b.category ?? "",
@@ -82,12 +87,20 @@ function toValues(p?: Product, ref?: Pick<RegulatoryRef, "authority" | "number">
     gtin: b.gtin ?? "",
     description: b.description ?? "",
     reg_authority: ref?.authority ?? "NAFDAC",
-    reg_number: ref?.number ?? "",
+    reg_number: ref?.reference_number ?? ref?.number ?? "",
     consumer_visibility: { ...DEFAULT_VISIBILITY, ...(b.consumer_visibility ?? {}) },
     support_email: b.support_contact?.email ?? "",
     support_phone: b.support_contact?.phone ?? "",
     support_url: b.support_contact?.url ?? "",
   };
+}
+
+const packFilled = (v: FormValues) => !!(v.pack_packs.trim() || v.pack_per_pack.trim() || v.pack_unit.trim());
+
+/** The three pack inputs as the API's object, or null when all are empty. */
+function packConfig(v: FormValues): PackConfiguration | null {
+  if (!packFilled(v)) return null;
+  return { packs: Number(v.pack_packs), per_pack: Number(v.pack_per_pack), unit: v.pack_unit.trim() };
 }
 
 /** Form values -> API body. Empty text becomes null so an edit can clear a field. */
@@ -101,7 +114,7 @@ function toPayload(v: FormValues, imageId: string | null): ProductWrite {
     variant: t(v.variant),
     size_value: v.size_value.trim() === "" ? null : Number(v.size_value),
     size_unit: v.size_unit || null,
-    pack_configuration: t(v.pack_configuration),
+    pack_configuration: packConfig(v),
     dosage_form: t(v.dosage_form),
     strength: t(v.strength),
     category: v.category || null,
@@ -112,7 +125,7 @@ function toPayload(v: FormValues, imageId: string | null): ProductWrite {
     consumer_visibility: v.consumer_visibility,
     support_contact: contact.email || contact.phone || contact.url ? contact : null,
     regulatory_reference: v.reg_number.trim()
-      ? { authority: v.reg_authority, number: v.reg_number.trim(), source: "entered_by_manufacturer" }
+      ? regulatoryRefBody(v.reg_authority, v.reg_number)
       : null,
   };
 }
@@ -172,7 +185,7 @@ export function ProductForm({ product, regRef: existingRef }: { product?: Produc
     sku: !!v.sku.trim(),
     dosage_form: !!v.dosage_form.trim(),
     strength: !!v.strength.trim(),
-    pack_configuration: !!v.pack_configuration.trim(),
+    pack_configuration: !!v.pack_packs.trim() && !!v.pack_per_pack.trim() && !!v.pack_unit.trim(),
     gtin: !!v.gtin.trim(),
   };
   const missing = ["name", ...(industry?.required_fields ?? [])].filter((k, i, a) => a.indexOf(k) === i && k in filled && !filled[k]);
@@ -180,7 +193,8 @@ export function ProductForm({ product, regRef: existingRef }: { product?: Produc
   function applyServerErrors(e: unknown): boolean {
     const details = fieldErrors(e);
     const map: Record<string, keyof FormValues> = {
-      size: "size_value", size_value: "size_value", size_unit: "size_unit", "regulatory_reference.number": "reg_number",
+      pack_configuration: "pack_packs", "pack_configuration.packs": "pack_packs", "pack_configuration.per_pack": "pack_per_pack",
+      "pack_configuration.unit": "pack_unit", size: "size_value", size_value: "size_value", size_unit: "size_unit", "regulatory_reference.number": "reg_number", "regulatory_reference.reference_number": "reg_number", reference_number: "reg_number", country_code: "reg_authority",
       regulatory_reference: "reg_number", "support_contact.email": "support_email", "support_contact.phone": "support_phone",
       "support_contact.url": "support_url",
     };
@@ -410,7 +424,17 @@ export function ProductForm({ product, regRef: existingRef }: { product?: Produc
               <p className="mt-1.5 text-xs text-muted">Shown to consumers as “{v.size_value && v.size_unit ? `${v.size_value} ${v.size_unit}` : "400 ml"}”.</p>
             </div>
 
-            <Field label={`Pack configuration${req("pack_configuration")}`} placeholder="Single bottle" error={errors.pack_configuration?.message} {...register("pack_configuration")} />
+            <div>
+              <div className="grid grid-cols-[1fr_1fr_1.4fr] gap-2">
+                <Field label={`Packs${req("pack_configuration")}`} inputMode="numeric" placeholder="1" error={errors.pack_packs?.message}
+                  {...register("pack_packs", { validate: (s) => !s.trim() || /^[1-9]\d*$/.test(s.trim()) || "Whole number, at least 1" })} />
+                <Field label="Per pack" inputMode="numeric" placeholder="10" error={errors.pack_per_pack?.message}
+                  {...register("pack_per_pack", { validate: (s) => !s.trim() || /^[1-9]\d*$/.test(s.trim()) || "Whole number, at least 1" })} />
+                <Field label="Unit" placeholder="bars" error={errors.pack_unit?.message}
+                  {...register("pack_unit", { validate: (s, f) => !packFilled(f) || !!s.trim() || "Enter a unit" })} />
+              </div>
+              <p className="mt-1.5 text-xs text-muted">Packs in the product, items in each pack, and what the items are. A single bar is 1 pack of 1 bar.</p>
+            </div>
 
             {v.industry === "pharmaceuticals" && (
               <>

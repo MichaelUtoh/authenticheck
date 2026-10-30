@@ -1,10 +1,10 @@
 import { apiFetch, qs } from "./client";
 
-// Response shape of /analytics/codes isn't documented in ENDPOINT_REFERENCE.md; `total` is assumed.
+// Not spelled out in ENDPOINT_REFERENCE.md; confirmed against a live response.
 export interface CodeInventory {
-  total: number;
-  active?: number;
-  deactivated?: number;
+  total_issued: number;
+  active: number;
+  deactivated: number;
 }
 
 export interface BatchCounts {

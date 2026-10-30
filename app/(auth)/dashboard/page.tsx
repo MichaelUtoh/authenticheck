@@ -58,7 +58,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
           <KpiCard label="Products" value={fmt(products.data?.total)} note={`${fmt(products.data?.counts.draft)} drafts`} />
           <KpiCard label="Active batches" value={fmt(batches.data?.active)} note={`${fmt(batches.data?.total)} in total`} />
-          <KpiCard label="Codes issued" value={fmt(codes.data?.total)} note={`${fmt(codes.data?.deactivated)} deactivated`} />
+          <KpiCard label="Codes issued" value={fmt(codes.data?.total_issued)} note={`${fmt(codes.data?.deactivated)} deactivated`} />
           <KpiCard label="Checks" value={k.totalChecks} note={`Last ${period} days`} />
           <KpiCard label="Repeat checks" value={k.repeatChecks} note={`${k.repeatShare}% of checks`} />
           <KpiCard label="Open flags" value={k.openFlags} note={`${k.highFlags} high severity`} />

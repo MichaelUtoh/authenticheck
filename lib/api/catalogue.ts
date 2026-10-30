@@ -29,9 +29,28 @@ export interface ProductListParams {
 
 export type ProductList = PaginatedResponse<Product> & { status_counts?: Partial<Record<ProductStatus, number>> };
 
+export interface RegulatoryRefWrite {
+  authority: string;
+  country_code: string;
+  reference_number: string;
+  source?: string;
+}
+
+/** Issuing country of each authority; the API requires `country_code` alongside the number. */
+export const AUTHORITY_COUNTRY: Record<string, string> = { NAFDAC: "NG" };
+
+export function regulatoryRefBody(authority: string, number: string): RegulatoryRefWrite {
+  return {
+    authority,
+    country_code: AUTHORITY_COUNTRY[authority] ?? "NG",
+    reference_number: number.trim(),
+    source: "entered_by_manufacturer",
+  };
+}
+
 export interface ProductWrite extends Partial<Omit<ProductFields, "consumer_visibility">> {
   consumer_visibility?: ConsumerVisibility;
-  regulatory_reference?: { authority: string; number: string; source?: string } | null;
+  regulatory_reference?: RegulatoryRefWrite | null;
   confirm_not_duplicate?: boolean;
 }
 
@@ -110,7 +129,7 @@ export const catalogueApi = {
   // regulatory references
   listRefs: (productId: string) =>
     apiFetch<RegulatoryRef[] | { results: RegulatoryRef[] }>(`${P}/${productId}/regulatory-refs`),
-  addRef: (productId: string, body: { authority: string; number: string; source?: string }) =>
+  addRef: (productId: string, body: RegulatoryRefWrite) =>
     apiFetch<RegulatoryRef>(`${P}/${productId}/regulatory-refs`, { method: "POST", body: JSON.stringify(body) }),
 
   // batches (read-only here; the Batches & codes tab owns writes)

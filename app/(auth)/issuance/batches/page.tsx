@@ -38,7 +38,7 @@ export default function BatchesPage() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard label="Active batches" value={counts.data?.active ?? "—"} note={counts.data ? `${counts.data.total} in total` : "All products"} />
-          <KpiCard label="Codes generated" value={inventory.data?.total ?? "—"} note="Across all batches" />
+          <KpiCard label="Codes generated" value={inventory.data?.total_issued ?? "—"} note="Across all batches" />
           <KpiCard label="Need attention" value={attention} note="Partial, unreconciled or expiring" />
           <KpiCard label="Awaiting approval" value={approvals} note="Deactivation requests" />
         </div>

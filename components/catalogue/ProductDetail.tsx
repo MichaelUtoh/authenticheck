@@ -9,7 +9,7 @@ import { Button, FormError } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { GhostButton, Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
-import { asList, catalogueApi, type ActivityEvent } from "@/lib/api/catalogue";
+import { asList, catalogueApi, regulatoryRefBody, type ActivityEvent } from "@/lib/api/catalogue";
 import { ApiError, errorMessage, fieldErrors } from "@/lib/api/client";
 import { useCatalogueRole } from "@/lib/auth/permissions";
 import { fmtDate, fmtDateTime, num } from "@/lib/format";
@@ -202,6 +202,11 @@ function Banners({ p }: { p: Product }) {
   );
 }
 
+function fmtPack(c: Product["pack_configuration"]) {
+  if (!c) return "—";
+  return typeof c === "string" ? c : `${c.packs} × ${c.per_pack} ${c.unit}`;
+}
+
 function Overview({ p, canEdit }: { p: Product; canEdit: boolean }) {
   const facts: [string, React.ReactNode][] = [
     ["Industry", p.industry ? <span className="capitalize">{p.industry}</span> : "—"],
@@ -209,7 +214,7 @@ function Overview({ p, canEdit }: { p: Product; canEdit: boolean }) {
     ["Brand", p.brand_name ?? p.brand ?? "—"],
     ["Variant", p.variant ?? "—"],
     ["Size", p.size ?? "—"],
-    ["Pack configuration", p.pack_configuration ?? "—"],
+    ["Pack configuration", fmtPack(p.pack_configuration)],
     ...(p.industry === "pharmaceuticals" ? ([["Dosage form", p.dosage_form ?? "—"], ["Strength", p.strength ?? "—"]] as [string, React.ReactNode][]) : []),
     ["SKU", <span key="s" className="font-mono text-xs">{p.sku || "—"}</span>],
     ["GTIN", <span key="g" className="font-mono text-xs">{p.gtin ?? "—"}</span>],
@@ -305,7 +310,7 @@ function RegulatoryRefs({ productId, canEdit }: { productId: string; canEdit: bo
     setSaving(true);
     setError(null);
     try {
-      await catalogueApi.addRef(productId, { authority, number: number.trim(), source: "entered_by_manufacturer" });
+      await catalogueApi.addRef(productId, regulatoryRefBody(authority, number));
       setAdding(false);
       setNumber("");
       refs.reload();
@@ -333,7 +338,7 @@ function RegulatoryRefs({ productId, canEdit }: { productId: string; canEdit: bo
         <ul className="mt-3 divide-y divide-border/70">
           {list.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-              <span><span className="font-medium">{r.authority}</span> <span className="ml-1 font-mono text-xs">{r.number}</span></span>
+              <span><span className="font-medium">{r.authority}</span> <span className="ml-1 font-mono text-xs">{r.reference_number ?? r.number}</span></span>
               {r.verification_status === "verified" ? (
                 <span className="text-right text-xs text-primary">
                   Verified{r.verification_method ? ` · ${r.verification_method}` : ""}{r.verified_at ? ` · ${fmtDate(r.verified_at.slice(0, 10))}` : ""}
