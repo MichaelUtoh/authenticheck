@@ -3,12 +3,14 @@
 import { KpiCard } from "@/components/analytics/KpiCard";
 import { BatchTable } from "@/components/issuance/BatchTable";
 import { Topbar } from "@/components/layout/Topbar";
+import { batchStatsApi } from "@/lib/api/batchStats";
+import { useApi } from "@/lib/hooks/useApi";
 import { getBatches } from "@/lib/mock/batches";
 
 export default function BatchesPage() {
   const batches = getBatches();
-  const active = batches.filter((b) => b.status === "active").length;
-  const issued = batches.reduce((s, b) => s + b.generated, 0);
+  const counts = useApi(() => batchStatsApi.batchCounts(), []);
+  const inventory = useApi(() => batchStatsApi.codeInventory(), []);
   const attention = batches.filter((b) => b.attention.length > 0).length;
   const approvals = batches.filter((b) => b.attention.includes("approval")).length;
 
@@ -35,8 +37,8 @@ export default function BatchesPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiCard label="Active batches" value={active} note={`${batches.length} in total`} />
-          <KpiCard label="Codes generated" value={issued} note="Across listed batches" />
+          <KpiCard label="Active batches" value={counts.data?.active ?? "—"} note={counts.data ? `${counts.data.total} in total` : "All products"} />
+          <KpiCard label="Codes generated" value={inventory.data?.total ?? "—"} note="Across all batches" />
           <KpiCard label="Need attention" value={attention} note="Partial, unreconciled or expiring" />
           <KpiCard label="Awaiting approval" value={approvals} note="Deactivation requests" />
         </div>

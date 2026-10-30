@@ -8,6 +8,9 @@ import { ReleaseGates } from "@/components/dashboard/ReleaseGates";
 import { RecentJobsTable } from "@/components/issuance/RecentJobsTable";
 import { Topbar } from "@/components/layout/Topbar";
 import { FlagTable } from "@/components/risk/FlagTable";
+import { batchStatsApi } from "@/lib/api/batchStats";
+import { useApi } from "@/lib/hooks/useApi";
+import { useStatusCounts } from "@/lib/hooks/useStatusCounts";
 import { useTenant } from "@/lib/hooks/useTenant";
 import { getDashboard, type Period } from "@/lib/mock/dashboard";
 
@@ -16,6 +19,10 @@ export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>(30);
   const d = useMemo(() => getDashboard(period), [period]);
   const k = d.kpis;
+  const products = useStatusCounts();
+  const batches = useApi(() => batchStatsApi.batchCounts(), []);
+  const codes = useApi(() => batchStatsApi.codeInventory(), []);
+  const fmt = (n?: number) => (n === undefined ? "—" : n.toLocaleString("en-US"));
 
   return (
     <>
@@ -49,9 +56,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
-          <KpiCard label="Products" value={k.products} note={`${k.drafts} drafts`} />
-          <KpiCard label="Active batches" value={k.activeBatches} note={`${k.expiringSoon} expire within 60 days`} />
-          <KpiCard label="Codes issued" value={k.codesIssued} note={`${k.deactivated.toLocaleString("en-US")} deactivated`} />
+          <KpiCard label="Products" value={fmt(products.data?.total)} note={`${fmt(products.data?.counts.draft)} drafts`} />
+          <KpiCard label="Active batches" value={fmt(batches.data?.active)} note={`${fmt(batches.data?.total)} in total`} />
+          <KpiCard label="Codes issued" value={fmt(codes.data?.total)} note={`${fmt(codes.data?.deactivated)} deactivated`} />
           <KpiCard label="Checks" value={k.totalChecks} note={`Last ${period} days`} />
           <KpiCard label="Repeat checks" value={k.repeatChecks} note={`${k.repeatShare}% of checks`} />
           <KpiCard label="Open flags" value={k.openFlags} note={`${k.highFlags} high severity`} />

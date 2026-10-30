@@ -12,6 +12,7 @@ import { asList, catalogueApi, type ProductListParams } from "@/lib/api/catalogu
 import { useCatalogueRole } from "@/lib/auth/permissions";
 import { fmtDateTime } from "@/lib/format";
 import { useApi } from "@/lib/hooks/useApi";
+import { useStatusCounts } from "@/lib/hooks/useStatusCounts";
 import type { Industry, ProductStatus } from "@/lib/types";
 import { ProductBadges, STATUS_LABEL } from "./ProductStatusBadge";
 
@@ -27,17 +28,6 @@ const ORDERINGS: { value: NonNullable<ProductListParams["ordering"]>; label: str
 ];
 
 const control = "h-11 rounded-xl border border-border bg-white px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
-
-/** Counts for the KPI row. Uses `status_counts` when the API sends it, else one cheap call per status. */
-function useStatusCounts() {
-  return useApi(async () => {
-    const first = await catalogueApi.listProducts({ page_size: 1, is_active: true });
-    if (first.status_counts) return { total: first.count, counts: first.status_counts };
-    const wanted: ProductStatus[] = ["draft", "in_review", "changes_requested"];
-    const rest = await Promise.all(wanted.map((status) => catalogueApi.listProducts({ status: [status], page_size: 1, is_active: true })));
-    return { total: first.count, counts: Object.fromEntries(wanted.map((s, i) => [s, rest[i].count])) as Partial<Record<ProductStatus, number>> };
-  }, []);
-}
 
 export function ProductList() {
   const { canEdit } = useCatalogueRole();
