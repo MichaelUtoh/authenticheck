@@ -21,3 +21,14 @@ export function useCatalogueRole() {
     canSubmit: !!role && (ADMIN.includes(role) || (role === "editor" && tenant?.can_submit_products !== false)),
   };
 }
+
+export function useTeamRole() {
+  const tenant = useAuthStore((s) => s.activeTenant);
+  const role = tenant?.role;
+  return {
+    /** 👑 can read the member list and toggle submit rights */
+    canView: !!role && ADMIN.includes(role),
+    /** Only the owner changes roles; the API answers 403 otherwise. */
+    canChangeRoles: role === "owner",
+  };
+}

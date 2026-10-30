@@ -48,6 +48,9 @@ One living list of everything the frontend needs from the backend that `ENDPOINT
 | TEN-3 | Confirm the shape of `GET /tenants/me/release-gates` (the frontend assumes `{ cosmetics: { status }, pharmaceuticals: { status, items: [{ key, label, state }] } }`, `state` ∈ `not_started \| in_progress \| done`). | Optional | Confirm | The product form lists gate items only when this shape matches. The dashboard's Release gates card is still hard-coded. |
 | TEN-4 | `GET /tenants/me/members` readable by non-admins in a minimal form (`id`, `name`) so actors in activity logs and "submitted by" can be named for everyone. | Optional | Open | Names come from the activity payload only. |
 | TEN-5 | `GET /tenants/me` should return `support_contact_complete` and `go_live` state (see TEN-2). | Optional | Open | – |
+| TEN-6 | Confirm the shape of `GET /tenants/me/members` rows. The Team page assumes `{ id, full_name, email, role, can_submit_products, created_at }`; `name` is accepted as an alias for `full_name`. | **Required** | Confirm | Names, emails or the submit switch may render blank. |
+| TEN-7 | Invitations so a second person can join an existing company: create (email + role), list, resend, revoke, and accept by single-use expiring token. The accepting user must sign in with the invited email and is added with that role, skipping company registration and approval. | **Required** | Open | Anyone who signs up can only register a new, separate company. |
+| TEN-8 | Remove or deactivate a member (`DELETE` or `PATCH is_active=false` on `/tenants/me/members/{id}`). The owner cannot be removed; removed members lose access immediately. | **Required** | Open | There is no way to offboard someone. |
 
 ---
 
