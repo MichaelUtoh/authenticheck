@@ -111,6 +111,21 @@ These are read as "array **or** `{ results }`" so either works, but one should b
 
 ---
 
+### 3.5 Imports (`/catalogue/import`)
+
+The Imports page is built against the two documented paths; everything else below is assumed or missing.
+
+| ID | Requirement | Priority | Status | Without it |
+|---|---|---|---|---|
+| IMP-1 | Document the CSV columns per `import_type` (`brands`, `products`, `batches`): required fields, allowed values (industry, `size_unit`, category slug), date format, and the order brands → products → batches. | **Required** | Open | Users can't prepare a file. |
+| IMP-2 | Confirm the request and response. The UI sends multipart `import_type` + `file`, and reads `{ id, import_type, status: pending\|processing\|done\|failed, total_rows, processed_rows, created, skipped, failed, errors: [{ row, column, message }], message }`. | **Required** | Confirm | Progress, counts or row errors may render empty. |
+| IMP-3 | Partial-success rule: does one bad row fail the whole file, or are good rows imported and bad rows skipped? The UI wording ("Imported, with some rows to fix") assumes the latter. | **Required** (Decision) | Open | Result copy may be wrong. |
+| IMP-4 | Validate-only mode (or dry run) that returns row errors without writing, so users can fix a file before importing. | Optional | Open | Users learn about errors only after rows were created. |
+| IMP-5 | `GET /catalogue/import` (history: date, type, file name, status, counts, who) and a downloadable CSV template per type. | Optional | Open | No history; users build files from the docs. |
+| IMP-6 | State limits (file size, rows; the UI assumes 10 MB) and make a repeat upload of the same file safe (idempotency or duplicate warning). | **Required** | Open | Double uploads create duplicates; the size check is a guess. |
+
+---
+
 ## 4. Platform review (staff)
 
 The review queue at `/platform/products` exists on the frontend. It needs more than the queue endpoint returns.
