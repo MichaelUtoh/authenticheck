@@ -126,6 +126,23 @@ The Imports page is built against the two documented paths; everything else belo
 
 ---
 
+### 3.6 Settings (company, API keys, webhooks, security)
+
+Built so far: Company (support contact) and API keys. Webhooks and Security are not built yet.
+
+| ID | Requirement | Priority | Status | Without it |
+|---|---|---|---|---|
+| SET-1 | Confirm the support-contact field names. `ENDPOINT_REFERENCE.md` says `support_email`, `support_phone`, `support_url`; the Settings page writes those and reads either those or `email`/`phone`/`url`. | **Required** | Confirm | The form may save nothing or load blank. |
+| SET-2 | Confirm the `GET/POST /api-keys` shapes. The UI reads `{ id, name, prefix, created_at, last_used_at, expires_at, revoked }` and the raw secret from `key` on create (also `raw_key`, `secret`, `token`). It sends `{ name, expires_at? }`. | **Required** | Confirm | The key list or the one-time secret may render empty. |
+| SET-3 | API key scopes (for example read-only, issue-only) and an optional IP allow-list. | **Required** (Decision) | Open | Every key has full admin power; a leaked key is a leaked account. |
+| SET-4 | `PATCH /tenants/me` to edit company details (trading name, address, logo), with an audit entry. | Optional | Open | Company name can't be changed in the app. |
+| SET-5 | Webhooks: publish the event-type list, add a "send test event" and "redeliver" action, and secret rotation. | **Required** for the Webhooks page | Open | The events picker can't be built from data. |
+| SET-6 | Security: change password, change email, list and revoke sessions, disable MFA, MFA recovery codes. | **Required** | Open | Users can enrol in MFA but not recover or leave it. |
+| SET-7 | Decision: is MFA mandatory for owners and admins? | **Required** (Decision) | Open | Changes onboarding and the Security page. |
+| SET-8 | Notification preferences (who gets flag, approval and import emails). | Optional | Open | No control over email volume. |
+
+---
+
 ## 4. Platform review (staff)
 
 The review queue at `/platform/products` exists on the frontend. It needs more than the queue endpoint returns.

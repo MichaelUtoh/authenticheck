@@ -144,10 +144,22 @@ export const catalogueApi = {
 
 export type ProductBatch = Batch & { manufacture_date?: string | null; expiry?: string | null };
 
+// ENDPOINT_REFERENCE.md names the contact fields `support_email`, `support_phone`, `support_url`;
+// the product form's override uses `{ email, phone, url }`. Read either, write the documented names.
+type RawContact = Record<string, string | null | undefined>;
+const toContact = (r: RawContact): SupportContact => ({
+  email: r.support_email ?? r.email ?? null,
+  phone: r.support_phone ?? r.phone ?? null,
+  url: r.support_url ?? r.url ?? null,
+});
+
 export const tenantApi = {
-  supportContact: () => apiFetch<SupportContact>("/tenants/me/support-contact"),
+  supportContact: () => apiFetch<RawContact>("/tenants/me/support-contact").then(toContact),
   updateSupportContact: (body: SupportContact) =>
-    apiFetch<SupportContact>("/tenants/me/support-contact", { method: "PATCH", body: JSON.stringify(body) }),
+    apiFetch<RawContact>("/tenants/me/support-contact", {
+      method: "PATCH",
+      body: JSON.stringify({ support_email: body.email, support_phone: body.phone, support_url: body.url }),
+    }).then(toContact),
   releaseGates: () => apiFetch<ReleaseGates>("/tenants/me/release-gates"),
 };
 

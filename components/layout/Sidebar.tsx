@@ -12,6 +12,8 @@ interface NavItem {
   icon: IconName;
   href?: string; // no href = page not built yet
   badge?: number;
+  /** Extra path prefixes that keep this item highlighted. */
+  also?: string[];
 }
 
 const nav: NavItem[] = [
@@ -23,7 +25,7 @@ const nav: NavItem[] = [
   { label: "Investigations", icon: "flag", href: "/risk/cases", badge: 7 },
   { label: "Team & roles", icon: "users", href: "/settings/team" },
   { label: "Audit log", icon: "list" },
-  { label: "Settings", icon: "sliders", href: "/settings/api-keys" },
+  { label: "Settings", icon: "sliders", href: "/settings/company", also: ["/settings/api-keys", "/webhooks"] },
 ];
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
@@ -65,7 +67,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="flex flex-col gap-0.5" aria-label="Main">
         {nav.map((item) => {
-          const active = item.href && (pathname === item.href || pathname.startsWith(item.href + "/"));
+          const active = item.href && [item.href, ...(item.also ?? [])].some((h) => pathname === h || pathname.startsWith(h + "/"));
           const base = "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm";
           const inner = (
             <>
