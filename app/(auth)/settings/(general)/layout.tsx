@@ -7,6 +7,7 @@ import { Topbar } from "@/components/layout/Topbar";
 const TABS = [
   { href: "/settings/company", label: "Company" },
   { href: "/settings/api-keys", label: "API keys" },
+  { href: "/settings/profile", label: "Profile" },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +18,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       <div className="space-y-6 px-4 py-6 sm:px-8 sm:py-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-          <p className="mt-1 text-muted">Company details and the keys your systems use to connect.</p>
+          <p className="mt-1 text-muted">Company details, the keys your systems use to connect, and your profile.</p>
         </div>
         <nav aria-label="Settings" className="flex gap-1 overflow-x-auto border-b border-border">
           {TABS.map((t) => {

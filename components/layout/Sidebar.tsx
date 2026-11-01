@@ -99,11 +99,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="mt-auto flex items-center gap-3 border-t border-border px-1.5 pt-4">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-foreground text-sm font-semibold text-white">{initials || "?"}</span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{user?.full_name ?? "…"}</span>
-          <span className="block text-xs capitalize text-muted">{tenant?.role ?? "Member"}</span>
-        </span>
+        <Link href="/settings/profile" className="flex min-w-0 flex-1 items-center gap-3" aria-label="Your profile">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-foreground text-sm font-semibold text-white">{initials || "?"}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">{user?.full_name ?? "…"}</span>
+            <span className="block text-xs capitalize text-muted">{tenant?.role ?? "Member"}</span>
+          </span>
+        </Link>
         <button type="button" onClick={signOut} className="text-xs font-medium text-primary hover:underline">
           Sign out
         </button>

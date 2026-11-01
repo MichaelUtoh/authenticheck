@@ -37,6 +37,10 @@ export const authApi = {
 
   me: () => apiFetch<AuthUser>("/auth/me"),
 
+  /** Only `full_name` is editable; email and password are ignored by this endpoint. Returns the same payload as `me`. */
+  updateMe: (body: { full_name: string }) =>
+    apiFetch<AuthUser>("/auth/me", { method: "PATCH", body: JSON.stringify(body) }),
+
   logout: () =>
     apiFetch<void>("/auth/logout", { method: "POST" }),
 };
