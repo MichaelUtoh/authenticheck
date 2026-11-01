@@ -1,7 +1,6 @@
 import { apiFetch } from "./client";
 
-// Response shape of GET /tenants/me/members isn't spelled out in ENDPOINT_REFERENCE.md (it says
-// the list "includes `role`, `can_submit_products`"). Everything else here is assumed.
+// GET /tenants/me/members returns `email`, `full_name`, `role` and `can_submit_products`; the rest is assumed.
 export interface Member {
   id: string;
   full_name?: string;

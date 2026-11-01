@@ -30,5 +30,8 @@ export function useTeamRole() {
     canView: !!role && ADMIN.includes(role),
     /** Only the owner changes roles; the API answers 403 otherwise. */
     canChangeRoles: role === "owner",
+    /** Owners and admins invite people; only the owner can invite or manage admins. */
+    canInvite: !!role && ADMIN.includes(role),
+    canManageAdmins: role === "owner",
   };
 }

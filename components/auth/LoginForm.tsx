@@ -17,7 +17,9 @@ interface Values {
 }
 
 export function LoginForm() {
-  const justRegistered = useSearchParams().get("registered") === "1";
+  const params = useSearchParams();
+  const justRegistered = params.get("registered") === "1";
+  const joined = params.get("accepted") === "1";
   const completeLogin = useCompleteLogin();
   const [error, setError] = useState<string | null>(null);
   const [mfa, setMfa] = useState(false);
@@ -25,7 +27,7 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<Values>();
+  } = useForm<Values>({ defaultValues: { email: params.get("email") ?? "", password: "" } });
 
   async function onSubmit(values: Values) {
     setError(null);
@@ -52,6 +54,12 @@ export function LoginForm() {
       {justRegistered && (
         <div role="status" className="mt-5 rounded-lg bg-primary-soft px-3.5 py-2.5 text-sm text-primary">
           Account created. Sign in to set up your organisation.
+        </div>
+      )}
+
+      {joined && (
+        <div role="status" className="mt-5 rounded-lg bg-primary-soft px-3.5 py-2.5 text-sm text-primary">
+          You&apos;ve joined the company. Sign in to continue.
         </div>
       )}
 

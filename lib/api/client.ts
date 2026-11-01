@@ -5,7 +5,9 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 export class ApiError extends Error {
   constructor(
     public status: number,
-    public error: { code: string; message: string; details?: unknown; request_id?: string }
+    public error: { code: string; message: string; details?: unknown; request_id?: string },
+    /** Seconds from a `Retry-After` header (429 responses). */
+    public retryAfter?: number
   ) {
     super(error.message);
   }
@@ -66,7 +68,8 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.error ?? { code: "unknown", message: res.statusText });
+    const retry = Number(res.headers.get("Retry-After"));
+    throw new ApiError(res.status, body.error ?? { code: "unknown", message: res.statusText }, Number.isFinite(retry) && retry > 0 ? retry : undefined);
   }
 
   if (res.status === 204) return undefined as T;
