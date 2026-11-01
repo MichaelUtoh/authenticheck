@@ -1,27 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { KpiCard } from "@/components/analytics/KpiCard";
 import { ScanChart } from "@/components/analytics/ScanChart";
 import { ReleaseGates } from "@/components/dashboard/ReleaseGates";
 import { RecentJobsTable } from "@/components/issuance/RecentJobsTable";
 import { Topbar } from "@/components/layout/Topbar";
 import { FlagTable } from "@/components/risk/FlagTable";
+import { EmptyState, ErrorState } from "@/components/shared/EmptyState";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { analyticsApi } from "@/lib/api/analytics";
+import { errorMessage } from "@/lib/api/client";
 import { batchStatsApi } from "@/lib/api/batchStats";
 import { useApi } from "@/lib/hooks/useApi";
 import { useStatusCounts } from "@/lib/hooks/useStatusCounts";
 import { useTenant } from "@/lib/hooks/useTenant";
-import { getDashboard, type Period } from "@/lib/mock/dashboard";
+import { getDashboard } from "@/lib/mock/dashboard";
+
+type Period = 7 | 30 | 90;
 
 export default function DashboardPage() {
   const tenant = useTenant();
   const [period, setPeriod] = useState<Period>(30);
-  const d = useMemo(() => getDashboard(period), [period]);
+  const d = getDashboard();
   const k = d.kpis;
   const products = useStatusCounts();
   const batches = useApi(() => batchStatsApi.batchCounts(), []);
   const codes = useApi(() => batchStatsApi.codeInventory(), []);
+  const scans = useApi(() => analyticsApi.scans(period), [period]);
+  const genuine = scans.data?.by_result.genuine;
+  const genuineShare = scans.data && scans.data.total_scans > 0 ? `${Math.round(((genuine ?? 0) / scans.data.total_scans) * 1000) / 10}% of checks` : "No checks yet";
   const fmt = (n?: number) => (n === undefined ? "—" : n.toLocaleString("en-US"));
 
   return (
@@ -59,14 +68,26 @@ export default function DashboardPage() {
           <KpiCard label="Products" value={fmt(products.data?.total)} note={`${fmt(products.data?.counts.draft)} drafts`} />
           <KpiCard label="Active batches" value={fmt(batches.data?.active)} note={`${fmt(batches.data?.total)} in total`} />
           <KpiCard label="Codes issued" value={fmt(codes.data?.total_issued)} note={`${fmt(codes.data?.deactivated)} deactivated`} />
-          <KpiCard label="Checks" value={k.totalChecks} note={`Last ${period} days`} />
-          <KpiCard label="Repeat checks" value={k.repeatChecks} note={`${k.repeatShare}% of checks`} />
+          <KpiCard label="Checks" value={fmt(scans.data?.total_scans)} note={`Last ${period} days`} />
+          <KpiCard label="Genuine results" value={scans.data ? fmt(genuine ?? 0) : "—"} note={scans.data ? genuineShare : `Last ${period} days`} />
           <KpiCard label="Open flags" value={k.openFlags} note={`${k.highFlags} high severity`} />
           <KpiCard label="Open cases" value={k.openCases} note={`Oldest ${k.oldestCaseDays} days`} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
-          <ScanChart data={d.checks} />
+          {scans.error ? (
+            <section className="rounded-2xl border border-border bg-white p-5 sm:p-6">
+              <ErrorState message={errorMessage(scans.error, "We couldn't load checks.")} onRetry={scans.reload} />
+            </section>
+          ) : !scans.data ? (
+            <section className="rounded-2xl border border-border bg-white p-5 sm:p-6"><LoadingSpinner /></section>
+          ) : scans.data.total_scans === 0 ? (
+            <section className="rounded-2xl border border-border bg-white p-5 sm:p-6">
+              <EmptyState title="No checks yet" body={`Nobody has checked a code in the last ${period} days.`} />
+            </section>
+          ) : (
+            <ScanChart data={scans.data.by_day} />
+          )}
           <ReleaseGates />
         </div>
 
