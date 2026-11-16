@@ -138,8 +138,15 @@ export const catalogueApi = {
 
   // brands
   listBrands: () => apiFetch<Brand[] | { results: Brand[] }>("/catalogue/brands"),
+  /** The API requires a slug; derive it from the name ("Stella Pharma" -> "stella-pharma"). */
   createBrand: (name: string) =>
-    apiFetch<Brand>("/catalogue/brands", { method: "POST", body: JSON.stringify({ name }) }),
+    apiFetch<Brand>("/catalogue/brands", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        slug: name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "brand",
+      }),
+    }),
 };
 
 export type ProductBatch = Batch & { manufacture_date?: string | null; expiry?: string | null };

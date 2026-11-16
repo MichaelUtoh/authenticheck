@@ -32,13 +32,19 @@ export function qs(params: Record<string, string | number | boolean | undefined 
   return s ? `?${s}` : "";
 }
 
-/** Field-level messages from a `validation_error` (details keyed by field). */
+/** Field-level messages from a `validation_error`. Nested objects flatten to dotted keys (`support_contact.email`). */
 export function fieldErrors(e: unknown): Record<string, string> {
   if (!(e instanceof ApiError) || typeof e.error.details !== "object" || e.error.details === null) return {};
   const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(e.error.details as Record<string, unknown>)) {
-    out[k] = Array.isArray(v) ? v.join(" ") : typeof v === "string" ? v : "";
-  }
+  const walk = (obj: Record<string, unknown>, prefix: string) => {
+    for (const [k, v] of Object.entries(obj)) {
+      const key = prefix ? `${prefix}.${k}` : k;
+      if (Array.isArray(v)) out[key] = v.map((x) => (typeof x === "string" ? x : "")).join(" ").trim();
+      else if (typeof v === "string") out[key] = v;
+      else if (v && typeof v === "object") walk(v as Record<string, unknown>, key);
+    }
+  };
+  walk(e.error.details as Record<string, unknown>, "");
   return out;
 }
 
