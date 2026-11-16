@@ -17,7 +17,7 @@ export interface Invitation {
 export interface InvitePayload {
   email: string;
   role: string;
-  /** Editors only. */
+  /** Production / Quality only. */
   can_submit_products?: boolean;
 }
 

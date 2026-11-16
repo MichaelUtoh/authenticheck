@@ -57,7 +57,7 @@ export default function TeamPage() {
             <MemberTable members={rows} myEmail={myEmail} canChangeRoles={canChangeRoles} onChanged={() => { setNotice(null); members.reload(); }} onError={setNotice} />
           )}
           {canView && !canChangeRoles && rows.length > 0 && (
-            <p className="mt-4 text-xs text-muted">Only the owner can change roles. You can allow editors to send products for review.</p>
+            <p className="mt-4 text-xs text-muted">Only the owner can change roles. You can allow production/quality members to send products for review.</p>
           )}
         </section>
 

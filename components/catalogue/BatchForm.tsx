@@ -68,7 +68,7 @@ export function BatchForm() {
       router.push(`/catalogue/products/${v.product_id}`);
     } catch (e) {
       const details = fieldErrors(e);
-      const known: Record<string, keyof Values> = { quantity: "declared_quantity", expires_at: "expiry", best_before: "expiry", product: "product_id" };
+      const known: Record<string, keyof Values> = { manufactured_at: "manufacture_date", quantity: "declared_quantity", expires_at: "expiry", best_before: "expiry", product: "product_id" };
       let leftover = "";
       let first = true;
       for (const [k, msg] of Object.entries(details)) {
@@ -83,7 +83,7 @@ export function BatchForm() {
   }
 
   if (!canEdit) {
-    return <EmptyState title="You can't create batches" body="Owners, admins and editors can add batches. Ask one of them to do this." />;
+    return <EmptyState title="You can't create batches" body="Owners, admins and production/quality members can add batches. Ask one of them to do this." />;
   }
   if (products.error) return <ErrorState message={errorMessage(products.error, "We couldn't load your products.")} onRetry={products.reload} />;
   if (products.loading && !products.data) return <LoadingSpinner />;

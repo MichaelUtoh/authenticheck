@@ -6,10 +6,10 @@ import { GhostButton, Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { membersApi, type Member } from "@/lib/api/members";
 import { errorMessage } from "@/lib/api/client";
-import { ROLES, roleLabel } from "./roles";
+import { ROLES, normalizeRole, roleLabel } from "./roles";
 
 export function RoleChangeModal({ member, onClose, onSaved }: { member: Member; onClose: () => void; onSaved: () => void }) {
-  const [role, setRole] = useState(member.role);
+  const [role, setRole] = useState(normalizeRole(member.role));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const name = member.full_name ?? member.name ?? member.email ?? "this person";
@@ -37,7 +37,7 @@ export function RoleChangeModal({ member, onClose, onSaved }: { member: Member; 
         </Select>
         {next && <p className="rounded-lg bg-background p-3 text-sm text-muted">{next.summary}</p>}
         <div className="flex gap-2">
-          <Button type="button" className="!w-auto" loading={saving} disabled={role === member.role} onClick={save}>
+          <Button type="button" className="!w-auto" loading={saving} disabled={role === normalizeRole(member.role)} onClick={save}>
             Change to {roleLabel(role)}
           </Button>
           <GhostButton onClick={onClose}>Cancel</GhostButton>

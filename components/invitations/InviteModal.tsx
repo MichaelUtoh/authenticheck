@@ -30,7 +30,7 @@ export function InviteModal({ initial, canManageAdmins, onClose, onInvited }: Pr
   } = useForm<InvitePayload>({
     defaultValues: {
       email: initial?.email ?? "",
-      role: roles.some((r) => r.key === initial?.role) ? initial?.role : "member",
+      role: roles.some((r) => r.key === initial?.role) ? initial?.role : "viewer",
       can_submit_products: initial?.can_submit_products ?? false,
     },
   });
@@ -41,7 +41,7 @@ export function InviteModal({ initial, canManageAdmins, onClose, onInvited }: Pr
     setError(null);
     try {
       const body: InvitePayload = { email: v.email.trim(), role: v.role };
-      if (v.role === "editor") body.can_submit_products = !!v.can_submit_products;
+      if (v.role === "production_quality") body.can_submit_products = !!v.can_submit_products;
       onInvited(await invitationsApi.create(body));
       onClose();
     } catch (e) {
@@ -68,7 +68,7 @@ export function InviteModal({ initial, canManageAdmins, onClose, onInvited }: Pr
           {roles.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
         </Select>
         {summary && <p className="rounded-lg bg-background p-3 text-sm text-muted">{summary}</p>}
-        {role === "editor" && (
+        {role === "production_quality" && (
           <Toggle label="Can send products for review" hint="You can change this later." {...register("can_submit_products")} />
         )}
         <p className="text-xs text-muted">We&apos;ll email them a single-use link. It expires after 7 days.</p>

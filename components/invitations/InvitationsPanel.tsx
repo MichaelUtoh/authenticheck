@@ -4,6 +4,7 @@ import { useState } from "react";
 import { EmptyState, ErrorState } from "@/components/shared/EmptyState";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { roleLabel } from "@/components/team/roles";
+import { isProductionQuality } from "@/lib/auth/permissions";
 import { Button, FormError } from "@/components/ui/Button";
 import { GhostButton, Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
@@ -105,7 +106,7 @@ export function InvitationsPanel({ canManageAdmins, refreshKey, onInviteAgain, o
                       </td>
                       <td className="py-3 pr-4">
                         <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{roleLabel(inv.role)}</span>
-                        {inv.role === "editor" && <p className="mt-1 text-xs text-muted">{inv.can_submit_products ? "Can send for review" : "Cannot send for review"}</p>}
+                        {isProductionQuality(inv.role) && <p className="mt-1 text-xs text-muted">{inv.can_submit_products ? "Can send for review" : "Cannot send for review"}</p>}
                       </td>
                       <td className="py-3 pr-4">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_STYLE[inv.status]}`}>{inv.status}</span>

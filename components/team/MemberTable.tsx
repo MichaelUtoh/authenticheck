@@ -6,6 +6,7 @@ import { errorMessage } from "@/lib/api/client";
 import { fmtDate } from "@/lib/format";
 import { RoleChangeModal } from "./RoleChangeModal";
 import { roleLabel } from "./roles";
+import { isProductionQuality } from "@/lib/auth/permissions";
 
 interface Props {
   members: Member[];
@@ -47,7 +48,7 @@ export function MemberTable({ members, myEmail, canChangeRoles, onChanged, onErr
             {members.map((m) => {
               const name = m.full_name ?? m.name ?? m.email ?? "Unnamed";
               const isMe = !!myEmail && m.email?.toLowerCase() === myEmail.toLowerCase();
-              const isEditor = m.role === "editor";
+              const isEditor = isProductionQuality(m.role);
               const checked = submit[m.id] ?? !!m.can_submit_products;
               return (
                 <tr key={m.id} className="border-b border-border/70 last:border-0">
