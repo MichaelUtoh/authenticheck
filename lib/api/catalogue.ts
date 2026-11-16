@@ -132,7 +132,9 @@ export const catalogueApi = {
   addRef: (productId: string, body: RegulatoryRefWrite) =>
     apiFetch<RegulatoryRef>(`${P}/${productId}/regulatory-refs`, { method: "POST", body: JSON.stringify(body) }),
 
-  // batches (read-only here; the Batches & codes tab owns writes)
+  // batches
+  createBatch: (body: BatchWrite) =>
+    apiFetch<ProductBatch>(`${P}/${body.product_id}/batches`, { method: "POST", body: JSON.stringify(body) }),
   listBatches: (productId: string) =>
     apiFetch<ProductBatch[] | { results: ProductBatch[] }>(`${P}/${productId}/batches`),
 
@@ -150,6 +152,18 @@ export const catalogueApi = {
 };
 
 export type ProductBatch = Batch & { manufacture_date?: string | null; expiry?: string | null };
+
+// Field names for POST /catalogue/products/{id}/batches are partly assumed: ENDPOINT_REFERENCE.md names
+// `batch_number`, `product_id` and `declared_quantity` (alias `quantity`); `manufacture_date`, `expiry`
+// and `pack_format` follow BATCHES_CODES_API_REQUIREMENTS.md section 2.2.
+export interface BatchWrite {
+  product_id: string;
+  batch_number: string;
+  manufacture_date: string;
+  expiry: string;
+  declared_quantity: number;
+  pack_format?: string;
+}
 
 // ENDPOINT_REFERENCE.md names the contact fields `support_email`, `support_phone`, `support_url`;
 // the product form's override uses `{ email, phone, url }`. Read either, write the documented names.

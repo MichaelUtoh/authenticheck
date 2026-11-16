@@ -130,7 +130,7 @@ export function ProductDetail({ id }: { id: string }) {
             </nav>
 
             {tab === "overview" && <Overview p={p} canEdit={canEdit} />}
-            {tab === "batches" && <Batches id={p.id} />}
+            {tab === "batches" && <Batches id={p.id} canCreate={canEdit && p.status === "approved" && p.is_active !== false} />}
             {tab === "activity" && <Activity id={p.id} />}
             {tab === "preview" && <Preview id={p.id} />}
           </>
@@ -367,14 +367,17 @@ function RegulatoryRefs({ productId, canEdit }: { productId: string; canEdit: bo
   );
 }
 
-function Batches({ id }: { id: string }) {
+function Batches({ id, canCreate }: { id: string; canCreate: boolean }) {
   const req = useApi(() => catalogueApi.listBatches(id), [id]);
   const rows = asList(req.data);
   return (
     <section className={card}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Batches</h2>
-        <Link href="/issuance/batches" className="text-sm font-medium text-primary hover:underline">All batches &amp; codes</Link>
+        <div className="flex items-center gap-4">
+          {canCreate && <Link href={`/issuance/batches/new?product_id=${id}`} className="text-sm font-semibold text-primary hover:underline">New batch</Link>}
+          <Link href="/issuance/batches" className="text-sm font-medium text-primary hover:underline">All batches &amp; codes</Link>
+        </div>
       </div>
       {req.error ? (
         <div className="mt-3"><ErrorState message={errorMessage(req.error, "We couldn't load batches.")} onRetry={req.reload} /></div>

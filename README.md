@@ -39,7 +39,7 @@ AuthentiCheck is a product-authenticity platform. Manufacturers register their p
 
 Team roles are `owner`, `admin` and `editor`. Editors can submit products only when the owner has enabled it for them.
 
-> **Status.** Overview checks, products, and the public verify flow are wired to the API. Batches and codes, investigations and parts of the overview still use sample data and are marked "Sample data" in the UI. See [docs/BACKEND_API_REQUIREMENTS.md](docs/BACKEND_API_REQUIREMENTS.md) for what is outstanding.
+> **Status.** Overview checks, products, batches (create, list and detail facts), staff sign-in with MFA, tenant applications and the public verify flow are wired to the API. Code issuance, batch jobs and exports, investigations and parts of the overview still use sample data and are marked "Sample data" in the UI. See [docs/BACKEND_API_REQUIREMENTS.md](docs/BACKEND_API_REQUIREMENTS.md) for what is outstanding.
 
 ---
 

@@ -1,4 +1,4 @@
-import type { Attention, BatchStatus } from "@/lib/mock/batches";
+import type { Attention, BatchStatus } from "@/lib/api/batches";
 
 const status: Record<BatchStatus, string> = {
   active: "bg-primary-soft text-primary",

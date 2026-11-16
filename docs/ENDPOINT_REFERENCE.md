@@ -40,8 +40,8 @@ X-API-Key: ac_<token>
 | 🔑 | Requires `Authorization: Bearer <token>` |
 | 🏢 | Requires Bearer token **and** active approved tenant membership (`tid` in JWT) |
 | 👑 | Requires 🏢 + `owner` or `admin` role |
-| ✏️ | Requires 🏢 + `owner`, `admin` or `editor` role (catalogue drafts and batch entry) |
-| 📤 | Requires 🏢 + `owner` or `admin`, or an `editor` with `can_submit_products` enabled |
+| ✏️ | Requires 🏢 + `owner`, `admin` or `production_quality` role (catalogue drafts and batch entry) |
+| 📤 | Requires 🏢 + `owner` or `admin`, or a `production_quality` member with `can_submit_products` enabled |
 | 🛡️ | Requires `is_staff=True` + MFA verified |
 
 ---
@@ -67,7 +67,11 @@ X-API-Key: ac_<token>
 | `PATCH` | `/auth/me` | 🔑 | Update own profile. Body: `{ "full_name" }` (required, non-blank, max 255). Other fields (email, password) are ignored here. Returns the same payload as `GET /auth/me`. Audited |
 | `POST` | `/auth/mfa/setup` | 🔑 | Begin TOTP enrolment — returns provisioning URI for QR code |
 | `POST` | `/auth/mfa/confirm` | 🔑 | Confirm TOTP device with a 6-digit token |
-| `POST` | `/auth/mfa/verify` | 🌐 | Step 2 of MFA login (called after login returns `mfa_required: true`) |
+| `POST` | `/auth/mfa/enroll` | 🌐 | Staff first login: body `{ challenge_token }` (from login with `mfa_enrollment_required`). Returns `{ provisioning_uri, secret }` for the authenticator app |
+| `POST` | `/auth/mfa/enroll/confirm` | 🌐 | Body `{ challenge_token, token }` (first 6-digit code). Activates the device and returns the login response (`access_token`, `amr: ["pwd","otp"]`, refresh cookie) |
+| `POST` | `/auth/mfa/verify` | 🌐 | Staff later logins: body `{ challenge_token, token }`. Returns the login response. 5 wrong codes burn the challenge (log in again); challenges last 5 minutes and are single use |
+
+Staff login flow: `POST /auth/login` returns `{ mfa_required: true, challenge_token }` (plus `mfa_enrollment_required: true` if no authenticator is set up yet). Then enroll + confirm (first time) or verify (afterwards). The refresh cookie keeps `otp` in the token across refreshes.
 
 ---
 
@@ -85,27 +89,28 @@ X-API-Key: ac_<token>
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/tenants/register` | 🔑 | Register a new manufacturer tenant (creator becomes `owner`) |
+| `GET` | `/tenants/industries` | 🔑 | Industries for the registration form: `[{ key, label }]`. Works before the user has a company (unlike `/catalogue/industries`) |
+| `POST` | `/tenants/register` | 🔑 | Register a new manufacturer tenant (creator becomes `owner`). Body: `legal_name`, `trading_name?`, **`industry`** (key from `GET /tenants/industries`), **`rc_number`** (CAC), **`city`**; the last three are required |
 | `GET` | `/tenants/me` | 🏢 | Active tenant details |
 | `GET` | `/tenants/me/members` | 👑 | List active tenant members (`email`, `full_name`, `role`, `can_submit_products`) |
-| `PATCH` | `/tenants/me/members/{id}` | 👑 | Enable `can_submit_products` for an editor. Changing `role` (`admin`, `editor`, `member`, `viewer`) is **owner only**; the owner's own role cannot change |
+| `PATCH` | `/tenants/me/members/{id}` | 👑 | Enable `can_submit_products` for production/quality staff. Changing `role` (`admin`, `production_quality`, `investigator`, `viewer`; legacy `editor`/`member` are accepted and stored as `production_quality`) is **owner only**; the owner's own role cannot change |
 | `GET` | `/tenants/me/support-contact` | 🏢 | Default consumer support contact (`support_email`, `support_phone`, `support_url`) |
 | `PATCH` | `/tenants/me/support-contact` | 👑 | Update the support contact (audited). Shown on `/verify` unless a product overrides it |
 | `GET` | `/tenants/me/release-gates` | 🏢 | Industry release-gate state (cosmetics `live`, pharmaceuticals `locked`) |
 | `POST` | `/tenants/{id}/approve` | 🛡️ | Approve a pending tenant |
-| `POST` | `/tenants/{id}/reject` | 🛡️ | Reject a pending tenant |
-| `POST` | `/tenants/{id}/request-info` | 🛡️ | Move tenant to `info_requested` |
+| `POST` | `/tenants/{id}/reject` | 🛡️ | Reject a pending tenant. Body `{ reason }` is **required**; the applicant sees it as `decision_reason` |
+| `POST` | `/tenants/{id}/request-info` | 🛡️ | Move tenant to `info_requested`. Body `{ reason }` is **required** (what the applicant must provide); shown as `decision_reason`. `approve` and `suspend` take an optional `reason` (audit only) |
 | `POST` | `/tenants/{id}/suspend` | 🛡️ | Suspend an approved tenant |
 
 ---
 
 ## Tenants — Invitations
 
-Owners and admins invite people by email with a role. Only the **owner** can invite or manage **admins**. The `owner` role can't be granted by invitation. Roles: `admin`, `editor`, `member`, `viewer`. The single-use link is only ever sent by email (never returned by the API), is stored hashed, and expires after `INVITATION_TTL_DAYS` (default 7). The email links to `{FRONTEND_URL}/accept-invite?token=…`.
+Owners and admins invite people by email with a role. Only the **owner** can invite or manage **admins**. The `owner` role can't be granted by invitation. Roles: `admin`, `production_quality`, `investigator`, `viewer` (legacy `editor` and `member` are accepted and mapped to `production_quality`). `production_quality` can also create and resume code issuance jobs; `investigator` and `viewer` are read-only for now (flags and cases are not built yet). The single-use link is only ever sent by email (never returned by the API), is stored hashed, and expires after `INVITATION_TTL_DAYS` (default 7). The email links to `{FRONTEND_URL}/accept-invite?token=…`.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/tenants/me/invitations` | 👑 | Invite. Body: `{ "email", "role", "can_submit_products"? }` (`can_submit_products` is for editors only). `409 already_member`, `409 invitation_pending`. Rate-limited (30/hour per user) |
+| `POST` | `/tenants/me/invitations` | 👑 | Invite. Body: `{ "email", "role", "can_submit_products"? }` (`can_submit_products` is for `production_quality` only). `409 already_member`, `409 invitation_pending`. Rate-limited (30/hour per user) |
 | `GET` | `/tenants/me/invitations` | 👑 | List. `status` = `pending` (default), `accepted`, `revoked`, `expired` or `all` |
 | `POST` | `/tenants/me/invitations/{id}/resend` | 👑 | Issue a new link (the old one stops working) and restart the expiry. Pending invitations only |
 | `DELETE` | `/tenants/me/invitations/{id}` | 👑 | Revoke a pending invitation |
@@ -185,7 +190,7 @@ per-field `details`.
 
 ## Catalogue — Batches
 
-Batch `status` is `active`, `recalled` or `expired`. An `active` batch whose `expires_at` has passed is returned as `expired` (computed, not stored). `declared_quantity` is the same value as `quantity` (either name can be written; a value must be at least 1). Every batch response includes `product_name` (name · variant · size) and an `issuance` object:
+Batch `status` is `active`, `recalled` or `expired`. An `active` batch whose `expires_at` has passed is returned as `expired` (computed, not stored). `declared_quantity` is the same value as `quantity` (either name can be written; a value must be at least 1). Dates can be written and are returned as `manufacture_date` / `expiry` or as `manufactured_at` / `expires_at` (same values); `pack_format` is optional free text. A duplicate `batch_number` for the product is a `400` with `details.batch_number`. Every batch response includes `product_name` (name · variant · size) and an `issuance` object:
 
 ```json
 "issuance": { "requested": 20000, "generated": 19950, "failed": 50, "deactivated": 12 }
@@ -290,7 +295,7 @@ are not yet approved, or are suspended by staff, return `404 not_found`.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/platform/tenants` | 🛡️ | List all tenants (filter by `status`; paginated) |
+| `GET` | `/platform/tenants` | 🛡️ | List all tenants (filter by `status`, repeatable: `?status=pending&status=info_requested`; paginated). Rows include `industry`, `rc_number`, `city`, `decision_reason`, `decided_at`, `owner_email`, `owner_name`, `brands: [{ name }]` and `submitted_at` |
 | `GET` | `/platform/tenants/{id}` | 🛡️ | Tenant detail with usage stats |
 | `GET` | `/platform/flags` | 🛡️ | Unreviewed risk flags across all tenants |
 | `GET` | `/platform/audit` | 🛡️ | Paginated audit log (filter by `action`, `tenant_id`) |
