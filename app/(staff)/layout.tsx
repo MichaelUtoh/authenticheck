@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/auth/store";
+import { StaffShell } from "@/components/platform/StaffShell";
 import { useMe } from "@/lib/hooks/useMe";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -16,5 +17,5 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
   if (!user || !user.is_staff) return null;
 
-  return <>{children}</>;
+  return <StaffShell>{children}</StaffShell>;
 }

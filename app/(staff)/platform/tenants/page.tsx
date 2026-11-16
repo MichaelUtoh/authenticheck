@@ -1,9 +1,10 @@
-"use client";
+import { Suspense } from "react";
+import { TenantApplications } from "@/components/platform/TenantApplications";
 
-export default function Page() {
+export default function PlatformTenantsPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">tenants</h1>
-    </div>
+    <Suspense fallback={null}>
+      <TenantApplications />
+    </Suspense>
   );
 }
