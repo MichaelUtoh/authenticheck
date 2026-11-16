@@ -81,3 +81,24 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
+
+/** Download a file the API serves behind auth (a bearer header can't go on a plain link). */
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const send = () =>
+    fetch(`${API_BASE}${path}`, {
+      credentials: "include",
+      headers: { "X-Requested-With": "XMLHttpRequest", ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+    });
+  let res = await send();
+  if (res.status === 401 && (await tryRefresh())) res = await send();
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.error ?? { code: "unknown", message: res.statusText });
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

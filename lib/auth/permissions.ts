@@ -17,6 +17,8 @@ export function useCatalogueRole() {
     isStaff: useAuthStore((s) => !!s.user?.is_staff),
     /** ✏️ create/edit drafts, upload images, add regulatory refs */
     canEdit: !!role && EDIT.includes(role),
+    /** Create and resume code issuance jobs: owners, admins and production/quality members. */
+    canIssue: !!role && (ADMIN.includes(role) || isProductionQuality(role)),
     /** 👑 archive, brands, API keys */
     canAdminister: !!role && ADMIN.includes(role),
     /** 📤 production/quality members need `can_submit_products`; until /auth/me exposes it we assume yes and let the API answer 403 */
