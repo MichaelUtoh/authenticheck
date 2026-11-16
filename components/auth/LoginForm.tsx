@@ -10,6 +10,7 @@ import { useCompleteLogin } from "@/lib/auth/useCompleteLogin";
 import { Button, FormError } from "@/components/ui/Button";
 import { Field, PasswordField } from "@/components/ui/Field";
 import { MFAChallenge } from "./MFAChallenge";
+import { MFASetup } from "./MFASetup";
 
 interface Values {
   email: string;
@@ -22,7 +23,8 @@ export function LoginForm() {
   const joined = params.get("accepted") === "1";
   const completeLogin = useCompleteLogin();
   const [error, setError] = useState<string | null>(null);
-  const [mfa, setMfa] = useState(false);
+  // The challenge token stays in memory only; never persist it.
+  const [mfa, setMfa] = useState<{ challenge: string; enroll: boolean } | null>(null);
   const {
     register,
     handleSubmit,
@@ -33,18 +35,25 @@ export function LoginForm() {
     setError(null);
     try {
       const res = await authApi.login(values.email.trim(), values.password);
-      if (res.mfa_required) return setMfa(true);
+      if (res.mfa_required && res.challenge_token) return setMfa({ challenge: res.challenge_token, enroll: !!res.mfa_enrollment_required });
       if (res.access_token) await completeLogin(res.access_token);
     } catch (e) {
       setError(
         e instanceof ApiError && (e.status === 401 || e.status === 400)
           ? "Email or password is incorrect."
-          : "We couldn't sign you in. Please try again."
+          : e instanceof ApiError && e.status === 429
+            ? "Too many attempts. Please wait a few minutes and try again."
+            : "We couldn't sign you in. Please try again."
       );
     }
   }
 
-  if (mfa) return <MFAChallenge onBack={() => setMfa(false)} />;
+  if (mfa) {
+    const back = () => setMfa(null);
+    return mfa.enroll
+      ? <MFASetup challengeToken={mfa.challenge} onBack={back} />
+      : <MFAChallenge challengeToken={mfa.challenge} onBack={back} />;
+  }
 
   return (
     <>
