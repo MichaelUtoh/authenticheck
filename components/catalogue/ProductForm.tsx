@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button, FormError } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -146,6 +146,9 @@ export function ProductForm({ product, regRef: existingRef }: { product?: Produc
   const [productId, setProductId] = useState(product?.id);
   const [extraBrands, setExtraBrands] = useState<{ id: string; name: string }[]>([]);
   const [newBrand, setNewBrand] = useState<string | null>(null);
+  const [brandBusy, setBrandBusy] = useState(false);
+  const [brandError, setBrandError] = useState<string | null>(null);
+  const [pendingBrandId, setPendingBrandId] = useState<string | null>(null);
   const [image, setImage] = useState<{ id: string; url: string | null; uploaded: boolean } | null>(initialImage);
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -156,7 +159,7 @@ export function ProductForm({ product, regRef: existingRef }: { product?: Produc
   const wantSubmit = useRef(false); // remembered so the duplicate banner can retry the same action
 
   const {
-    register, handleSubmit, watch, setValue, setError,
+    register, handleSubmit, watch, setValue, setError, clearErrors,
     formState: { errors },
   } = useForm<FormValues>({ defaultValues: initial });
 
@@ -303,16 +306,28 @@ export function ProductForm({ product, regRef: existingRef }: { product?: Produc
 
   async function addBrand() {
     const name = newBrand?.trim();
-    if (!name) return;
+    if (!name || brandBusy) return;
+    setBrandBusy(true);
+    setBrandError(null);
     try {
       const b = await catalogueApi.createBrand(name);
       setExtraBrands((x) => [...x, b]);
-      setValue("brand_id", b.id, { shouldDirty: true });
+      setPendingBrandId(b.id); // selected once its <option> is rendered (see effect below)
       setNewBrand(null);
     } catch (e) {
-      setFormError(errorMessage(e, "We couldn't create that brand."));
+      setBrandError(errorMessage(e, "We couldn't create that brand."));
+    } finally {
+      setBrandBusy(false);
     }
   }
+
+  // setValue on a <select> is ignored until the matching <option> exists in the DOM.
+  useEffect(() => {
+    if (!pendingBrandId || !extraBrands.some((b) => b.id === pendingBrandId)) return;
+    setValue("brand_id", pendingBrandId, { shouldDirty: true });
+    clearErrors("brand_id");
+    setPendingBrandId(null);
+  }, [pendingBrandId, extraBrands, setValue, clearErrors]);
 
   if (industries.loading && !industries.data) return <LoadingSpinner label="Loading form…" />;
   if (industries.error) return <ErrorState message="We couldn't load the industry and category list." onRetry={industries.reload} />;
@@ -394,12 +409,15 @@ export function ProductForm({ product, regRef: existingRef }: { product?: Produc
                 {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </Select>
               {canAdminister && (newBrand === null ? (
-                <button type="button" onClick={() => setNewBrand("")} className="mt-1.5 text-xs font-medium text-primary hover:underline">+ New brand</button>
+                <button type="button" onClick={() => { setBrandError(null); setNewBrand(""); }} className="mt-1.5 text-xs font-medium text-primary hover:underline">+ New brand</button>
               ) : (
-                <div className="mt-2 flex gap-2">
-                  <input autoFocus value={newBrand} onChange={(e) => setNewBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addBrand())} placeholder="Brand name" aria-label="New brand name" className="h-9 min-w-0 flex-1 rounded-lg border border-border px-3 text-sm outline-none focus:border-primary" />
-                  <button type="button" onClick={addBrand} className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-white">Add</button>
-                  <button type="button" onClick={() => setNewBrand(null)} className="h-9 px-2 text-sm text-muted">Cancel</button>
+                <div className="mt-2">
+                <div className="flex gap-2">
+                  <input autoFocus value={newBrand} disabled={brandBusy} onChange={(e) => setNewBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addBrand())} placeholder="Brand name" aria-label="New brand name" className="h-9 min-w-0 flex-1 rounded-lg border border-border px-3 text-sm outline-none focus:border-primary" />
+                  <button type="button" onClick={addBrand} disabled={brandBusy || !newBrand.trim()} className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-white disabled:opacity-60">{brandBusy ? "Adding…" : "Add"}</button>
+                  <button type="button" onClick={() => { setNewBrand(null); setBrandError(null); }} disabled={brandBusy} className="h-9 px-2 text-sm text-muted">Cancel</button>
+                </div>
+                {brandError && <p role="alert" className="mt-1.5 text-xs text-danger">{brandError}</p>}
                 </div>
               ))}
             </div>
