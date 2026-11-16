@@ -12,6 +12,7 @@ import { GhostButton, Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { platformApi } from "@/lib/api/catalogue";
 import { ApiError, errorMessage, fieldErrors } from "@/lib/api/client";
+import { ProductReviewDetails } from "./ProductReviewDetails";
 import { fmtDateTime } from "@/lib/format";
 import { useApi } from "@/lib/hooks/useApi";
 import type { Product, ProductStatus } from "@/lib/types";
@@ -27,6 +28,7 @@ export function ProductReviewQueue() {
   const [page, setPage] = useState(1);
   const [active, setActive] = useState<{ row: Row; action: Action } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const queue = useApi(() => platformApi.productQueue({ status, page }), [status, page]);
   const rows = queue.data?.results ?? [];
 
@@ -64,7 +66,7 @@ export function ProductReviewQueue() {
           <ul className="divide-y divide-border/70">
             {rows.map((r) => (
               <li key={r.id} className="flex flex-wrap items-start justify-between gap-4 py-4">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1 basis-80">
                   <p className="font-medium">{r.name || "Untitled"} <span className="ml-1 font-mono text-xs text-muted">{r.sku}</span></p>
                   <p className="text-sm text-muted">
                     {[r.tenant_name, r.brand_name ?? r.brand, r.variant, r.size].filter(Boolean).join(" · ")}
@@ -73,7 +75,13 @@ export function ProductReviewQueue() {
                     {r.submitted_at ? `Submitted ${fmtDateTime(r.submitted_at)}` : `Updated ${fmtDateTime(r.updated_at)}`}
                     {r.pending_revision ? " · revision of an approved product" : ""}
                   </p>
-                  <div className="mt-2"><ProductBadges product={r} /></div>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <ProductBadges product={r} />
+                    <button type="button" aria-expanded={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)} className="text-sm font-medium text-primary underline-offset-2 hover:underline">
+                      {open === r.id ? "Hide details" : "Review details"}
+                    </button>
+                  </div>
+                  {open === r.id && <ProductReviewDetails p={r} />}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {r.status === "in_review" && (
