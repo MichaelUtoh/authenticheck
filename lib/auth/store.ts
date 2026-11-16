@@ -43,7 +43,17 @@ export function getAccessToken(): string | null {
   return useAuthStore.getState().accessToken;
 }
 
-export async function tryRefresh(): Promise<boolean> {
+let refreshing: Promise<boolean> | null = null;
+
+/** Concurrent 401s share one refresh call; parallel calls would race on the rotating refresh cookie. */
+export function tryRefresh(): Promise<boolean> {
+  refreshing ??= doRefresh().finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
+async function doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/refresh`, {
       method: "POST",
