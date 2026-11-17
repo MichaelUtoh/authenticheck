@@ -29,6 +29,7 @@ function issueError(e: unknown): string {
     const f = fieldErrors(e);
     if (f.quantity) return f.quantity;
   }
+  if (!(e instanceof ApiError)) return "We couldn't reach the server, so no codes were requested. If this keeps happening, the API may be blocking the Idempotency-Key header (CORS).";
   return errorMessage(e, "We couldn't start code issuance. Please try again.");
 }
 
