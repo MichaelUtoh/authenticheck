@@ -18,6 +18,7 @@ export function BatchTable() {
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<BatchStatus | "all">("all");
+  const [attention, setAttention] = useState(false);
   const [page, setPage] = useState(1);
 
   // Wait for a pause in typing before asking the server.
@@ -27,11 +28,11 @@ export function BatchTable() {
   }, [q]);
 
   const req = useApi(
-    () => batchesApi.list({ q: search, status: status === "all" ? undefined : status, page, page_size: PAGE_SIZE }),
-    [search, status, page]
+    () => batchesApi.list({ q: search, status: status === "all" ? undefined : status, needs_attention: attention || undefined, page, page_size: PAGE_SIZE }),
+    [search, status, attention, page]
   );
   const rows = req.data?.results ?? [];
-  const filtered = !!search || status !== "all";
+  const filtered = !!search || status !== "all" || attention;
 
   return (
     <section className="rounded-2xl border border-border bg-white p-5 sm:p-6">
@@ -57,6 +58,10 @@ export function BatchTable() {
               <option key={s} value={s}>{s === "all" ? "All statuses" : s}</option>
             ))}
           </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" checked={attention} onChange={(e) => { setAttention(e.target.checked); setPage(1); }} className="size-4 accent-primary" />
+          Needs attention
         </label>
       </div>
 

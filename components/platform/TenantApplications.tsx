@@ -6,8 +6,8 @@ import { EmptyState, ErrorState } from "@/components/shared/EmptyState";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { Pagination } from "@/components/shared/Pagination";
 import { Button, FormError } from "@/components/ui/Button";
-import { errorMessage } from "@/lib/api/client";
-import { platformTenantsApi, tenantDisplayName, type PlatformTenant, type TenantDecision } from "@/lib/api/platform";
+import { ApiError, errorMessage } from "@/lib/api/client";
+import { EVIDENCE_ITEMS, platformTenantsApi, tenantDisplayName, toEvidence, type PlatformTenant, type TenantDecision } from "@/lib/api/platform";
 import { fmtDate } from "@/lib/format";
 import { useApi } from "@/lib/hooks/useApi";
 import type { TenantStatus } from "@/lib/types";
@@ -134,19 +134,45 @@ function ReviewPanel({ tenant, onDone }: { tenant: PlatformTenant; onDone: (msg:
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [conflict, setConflict] = useState(false);
+  const [resolution, setResolution] = useState("");
   const name = tenantDisplayName(tenant);
+  const detail = useApi(() => platformTenantsApi.get(tenant.id), [tenant.id]);
+  const duplicates = detail.data?.rc_duplicates ?? tenant.rc_duplicates ?? [];
+  const evidence = toEvidence(detail.data?.evidence);
+  const [toggling, setToggling] = useState<string | null>(null);
+  const checkedCount = EVIDENCE_ITEMS.filter((i) => evidence[i.key]?.checked).length;
+
+  async function toggle(key: string, checked: boolean) {
+    setToggling(key);
+    setError(null);
+    try {
+      await platformTenantsApi.setEvidence(tenant.id, key, checked);
+      detail.reload();
+    } catch (e) {
+      setError(errorMessage(e, "We couldn't update the checklist."));
+    } finally {
+      setToggling(null);
+    }
+  }
   const decidable = tenant.status === "pending" || tenant.status === "info_requested";
   const brands = (tenant.brands ?? []).map((b) => (typeof b === "string" ? b : b.name)).join(", ");
 
   async function submit() {
     if (!reason.trim()) return setError("A reason is required. It's recorded in the audit log.");
+    if (conflict && !resolution.trim()) return setError("Record how the CAC number conflict was resolved.");
     setBusy(true);
     setError(null);
     try {
-      await platformTenantsApi.decide(tenant.id, decision, reason.trim());
+      await platformTenantsApi.decide(tenant.id, decision, reason.trim(), conflict && decision === "approve" ? { rc_conflict_resolution: resolution.trim() } : {});
       onDone(`${name} ${DECISIONS.find((d) => d.value === decision)?.done}.`);
     } catch (e) {
-      setError(errorMessage(e));
+      if (e instanceof ApiError && e.error.code === "rc_number_conflict") {
+        setConflict(true);
+        setError("This CAC number belongs to another company that isn't rejected. Check it, then record the resolution to approve anyway.");
+      } else {
+        setError(errorMessage(e));
+      }
       setBusy(false);
     }
   }
@@ -165,6 +191,37 @@ function ReviewPanel({ tenant, onDone }: { tenant: PlatformTenant; onDone: (msg:
         <Row label="Brands" value={brands} />
       </dl>
 
+      {duplicates.length > 0 && (
+        <p className="mt-4 rounded-lg bg-caution-soft px-3.5 py-2.5 text-sm text-caution">
+          Another company uses this CAC number: {duplicates.map((d) => `${d.legal_name ?? "Unnamed"}${d.status ? ` (${d.status})` : ""}`).join(", ")}.
+        </p>
+      )}
+
+      <div className="mt-5">
+        <div className="flex items-baseline justify-between">
+          <h3 className="text-sm font-semibold">Evidence checklist</h3>
+          {detail.data && <span className="text-xs text-muted">{checkedCount} of {EVIDENCE_ITEMS.length} checked</span>}
+        </div>
+        {detail.error ? (
+          <p className="mt-2 text-sm text-muted">We couldn&apos;t load the checklist. <button type="button" onClick={detail.reload} className="font-medium text-primary underline">Try again</button></p>
+        ) : !detail.data ? (
+          <p className="mt-2 text-sm text-muted">Loading…</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border/60">
+            {EVIDENCE_ITEMS.map((i) => (
+              <li key={i.key}>
+                <label className="flex cursor-pointer items-center gap-3 py-2 text-sm">
+                  <input type="checkbox" checked={!!evidence[i.key]?.checked} disabled={toggling === i.key} onChange={(e) => toggle(i.key, e.target.checked)} className="size-4 accent-primary" />
+                  <span className="flex-1">{i.label}</span>
+                  {evidence[i.key]?.note && <span className="text-xs text-muted">{evidence[i.key].note}</span>}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-1 text-xs text-muted">Ticking an item records that you checked it. It&apos;s audited and doesn&apos;t block a decision.</p>
+      </div>
+
       {decidable ? (
         <div className="mt-5 space-y-3">
           <fieldset>
@@ -182,8 +239,14 @@ function ReviewPanel({ tenant, onDone }: { tenant: PlatformTenant; onDone: (msg:
             <label htmlFor="decision-reason" className="mb-1.5 block text-sm font-semibold">Reason <span className="text-danger">*</span></label>
             <textarea id="decision-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Shown in the audit log and to the applicant" className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
           </div>
+          {conflict && decision === "approve" && (
+            <div>
+              <label htmlFor="rc-res" className="mb-1.5 block text-sm font-semibold">CAC number conflict resolution <span className="text-danger">*</span></label>
+              <textarea id="rc-res" rows={3} value={resolution} onChange={(e) => setResolution(e.target.value)} className="w-full rounded-lg border border-border px-3.5 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+            </div>
+          )}
           <FormError message={error} />
-          <Button loading={busy} onClick={submit}>Record decision</Button>
+          <Button loading={busy} onClick={submit}>{conflict && decision === "approve" ? "Approve anyway" : "Record decision"}</Button>
           <p className="text-xs text-muted">Approving a pharmaceutical company doesn&apos;t unlock live medicine checks. The pharmaceutical release gate stays locked until every prerequisite is met.</p>
         </div>
       ) : (

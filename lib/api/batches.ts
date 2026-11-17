@@ -85,6 +85,7 @@ export interface BatchListParams {
   q?: string;
   status?: BatchStatus;
   product_id?: string;
+  needs_attention?: boolean;
   page?: number;
   page_size?: number;
 }
@@ -96,4 +97,7 @@ export const batchesApi = {
       return { count: Array.isArray(r) ? r.length : r.count, results: results.map(toItem) };
     }),
   get: (id: string) => apiFetch<RawBatch>(`/catalogue/batches/${id}`).then(toItem),
+  /** Sets the batch to `recalled` and deactivates all its codes. Not reversible from the app. */
+  recall: (productId: string, id: string, reason: string) =>
+    apiFetch<unknown>(`/catalogue/products/${productId}/batches/${id}/recall`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
