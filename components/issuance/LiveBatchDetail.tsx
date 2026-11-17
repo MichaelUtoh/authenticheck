@@ -7,7 +7,9 @@ import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { batchesApi } from "@/lib/api/batches";
 import { ApiError, errorMessage } from "@/lib/api/client";
 import { fmtDate, num } from "@/lib/format";
+import { useCatalogueRole } from "@/lib/auth/permissions";
 import { useApi } from "@/lib/hooks/useApi";
+import { BatchActions } from "./BatchActions";
 import { BatchJobs } from "./BatchJobs";
 import { AttentionChip, BatchStatusBadge } from "./BatchStatusBadge";
 
@@ -15,6 +17,7 @@ const card = "rounded-2xl border border-border bg-white p-5 sm:p-6";
 
 /** A batch read from the API. Jobs, exports, reconciliation and history are not connected yet. */
 export function LiveBatchDetail({ id }: { id: string }) {
+  const { canAdminister } = useCatalogueRole();
   const req = useApi(() => batchesApi.get(id), [id]);
   const b = req.data;
   const notFound = req.error instanceof ApiError && (req.error.status === 404 || req.error.status === 400);
@@ -68,10 +71,12 @@ export function LiveBatchDetail({ id }: { id: string }) {
                 ))}
               </div>
               {b.requested === 0 && <p className="mt-3 text-sm text-muted">No codes have been issued for this batch yet.</p>}
-              <p className="mt-4 text-xs text-muted">Print exports, reconciliation, deactivation and history for real batches aren&apos;t connected yet.</p>
+              <p className="mt-4 text-xs text-muted">Print exports, reconciliation and history for real batches aren&apos;t connected yet.</p>
             </section>
 
             <BatchJobs batchId={b.id} declared={b.declared} requested={b.requested} active={b.status === "active"} onChange={req.reload} />
+
+            {canAdminister && b.generated > 0 && <BatchActions batch={b} onChange={req.reload} />}
           </>
         )}
       </div>

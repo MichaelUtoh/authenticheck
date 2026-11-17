@@ -40,6 +40,17 @@ const toJob = (r: RawJob): IssuanceJob => ({
   startedBy: r.started_by?.name,
 });
 
+export interface CodeRow {
+  code: string;
+  status: string;
+}
+
+interface RawCode {
+  code_str?: string;
+  code?: string;
+  status?: string;
+}
+
 export const isRunning = (s: JobStatus) => s === "pending" || s === "processing";
 
 export const issuanceApi = {
@@ -60,5 +71,15 @@ export const issuanceApi = {
   async resumeJob(id: string): Promise<IssuanceJob> {
     return toJob(await apiFetch<RawJob>(`/issuance/jobs/${id}/resume`, { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() } }));
   },
+  /** Find codes in a batch by full or partial text (dashes optional). */
+  async searchCodes(batchId: string, q: string): Promise<CodeRow[]> {
+    const r = await apiFetch<RawCode[] | { results: RawCode[] }>(`/issuance/codes${qs({ batch_id: batchId, q, page_size: 10 })}`);
+    return (Array.isArray(r) ? r : r.results).map((c) => ({ code: c.code_str ?? c.code ?? "", status: c.status ?? "" })).filter((c) => c.code);
+  },
+  deactivateCode: (code: string, reason: string) =>
+    apiFetch<unknown>(`/issuance/codes/${encodeURIComponent(code)}/deactivate`, { method: "POST", body: JSON.stringify({ reason }) }),
+  /** Deactivates every active code in the batch. */
+  deactivateBatch: (batchId: string, reason: string) =>
+    apiFetch<unknown>(`/issuance/batches/${batchId}/deactivate`, { method: "POST", body: JSON.stringify({ reason }) }),
   exportPath: (id: string) => `/issuance/jobs/${id}/export`,
 };
