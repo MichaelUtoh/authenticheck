@@ -16,7 +16,8 @@ const nav: { label: string; href?: string; badge?: boolean }[] = [
   { label: "Platform flags" },
   { label: "Support access" },
   { label: "Audit log" },
-  { label: "Operations health" },
+  { label: "Operations health", href: "/platform/ops" },
+  { label: "Staff", href: "/platform/staff" },
 ];
 
 function SideNav({ onNavigate }: { onNavigate?: () => void }) {
