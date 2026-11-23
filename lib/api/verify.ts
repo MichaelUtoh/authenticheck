@@ -88,8 +88,8 @@ function parse(code: string, body: Raw): CheckOutcome {
       : undefined,
     batch: {
       number: str(b.batch_number, b.number, body.batch_number),
-      manufactured: str(b.manufacture_date, b.manufactured, body.manufacture_date),
-      expiry: str(b.expiry, b.best_before, body.expiry),
+      manufactured: str(b.manufacture_date, b.manufactured_at, b.manufactured, body.manufacture_date, body.manufactured_at),
+      expiry: str(b.expiry, b.expires_at, b.best_before, body.expiry, body.expires_at, body.best_before),
     },
     support: { email: str(sc.email), phone: str(sc.phone), url: str(sc.url) },
   };

@@ -84,8 +84,8 @@ export function ProductCard({ product, code }: { product: ProductInfo; code?: st
       </div>
       <div className="mt-3">
         {batch?.number && <div className={row}><span className="text-muted">Batch</span><span className="font-mono">{batch.number}</span></div>}
-        {batch?.manufactured && <div className={row}><span className="text-muted">Manufactured</span><span className="font-medium">{fmtDate(batch.manufactured)}</span></div>}
-        {batch?.expiry && <div className={row}><span className="text-muted">Best before</span><span className="font-medium">{fmtDate(batch.expiry.length === 7 ? `${batch.expiry}-01` : batch.expiry)}</span></div>}
+        {batch?.manufactured && <div className={row}><span className="text-muted">Production date</span><span className="font-medium">{fmtDate(batch.manufactured)}</span></div>}
+        {batch?.expiry && <div className={row}><span className="text-muted">Expiry date</span><span className="font-medium">{fmtDate(batch.expiry.length === 7 ? `${batch.expiry}-01` : batch.expiry)}</span></div>}
         {code && <div className={row}><span className="text-muted">Code</span><span className="font-mono">{code}</span></div>}
         {regulatory && (
           <div className="border-t border-border py-2.5 text-sm">
