@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CurrentYear from "./current-year";
 
 export const metadata: Metadata = {
   title: "AuthentiCheck · Trust what’s inside",
@@ -69,7 +70,7 @@ export default function Home() {
 
       <section className="landing-container final-cta"><span className="landing-kicker">A BETTER WAY TO BUILD CONFIDENCE</span><h2>Make every product<br/>easier to trust.</h2><p>A quick check for shoppers. Clearer signals for the brands behind the products.</p><div className="mt-7 flex flex-wrap justify-center gap-3"><Link href="/verify" className="landing-button landing-button-white">Check a product <Arrow /></Link><Link href="/register" className="landing-button landing-button-outline">Protect your products</Link></div><div className="cta-pattern" aria-hidden="true"/></section>
 
-      <footer className="landing-footer"><div className="landing-container"><div className="footer-main"><Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-slate-900"><Mark /><span className="text-[18px]">Authenti<span className="text-emerald-800">Check</span></span></Link><p>Verify what you buy. Protect what you make.</p><nav aria-label="Footer navigation"><a href="#consumers">For consumers</a><a href="#manufacturers">For manufacturers</a><Link href="/login">Sign in</Link><Link href="/how-to-contact">Contact</Link></nav></div><div className="footer-bottom"><span>© {new Date().getFullYear()} AuthentiCheck</span><span>AuthentiCheck is a verification service, not a regulator.</span></div></div></footer>
+      <footer className="landing-footer"><div className="landing-container"><div className="footer-main"><Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-slate-900"><Mark /><span className="text-[18px]">Authenti<span className="text-emerald-800">Check</span></span></Link><p>Verify what you buy. Protect what you make.</p><nav aria-label="Footer navigation"><a href="#consumers">For consumers</a><a href="#manufacturers">For manufacturers</a><Link href="/login">Sign in</Link><Link href="/how-to-contact">Contact</Link></nav></div><div className="footer-bottom"><span>© <CurrentYear /> AuthentiCheck</span><span>AuthentiCheck is a verification service, not a regulator.</span></div></div></footer>
     </main>
   );
 }
